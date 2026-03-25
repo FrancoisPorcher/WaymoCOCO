@@ -25,7 +25,12 @@ export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 TFRECORD_DIR="/checkpoint/unicorns/shared/datasets/waymo_v1_4_3/training"
 WORK_DIR="/checkpoint/unicorns/shared/datasets/waymococo_f0"
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Waymo val export on ${SLURM_CPUS_PER_TASK:-8} CPU cores." >&2
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Waymo train export on ${SLURM_CPUS_PER_TASK:-8} CPU cores." >&2
+echo "Python: $(uv run python --version)" >&2
+echo "Python path: $(uv run python -c 'import sys; print(sys.executable)')" >&2
+echo "VIRTUAL_ENV: ${VIRTUAL_ENV:-not set}" >&2
+echo "PYTHONPATH: ${PYTHONPATH:-not set}" >&2
+echo "Protobuf version: $(uv run python -c 'import google.protobuf; print(google.protobuf.__version__)')" >&2
 
 srun --cpu-bind=none uv run python convert_waymo_to_coco.py \
   --tfrecord_dir "${TFRECORD_DIR}" \

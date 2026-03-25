@@ -10,6 +10,7 @@ dependencies = [
     "tqdm",
     "einops",
     "pandas",
+    "protobuf<4",
 ]
 
 [tool.uv]
