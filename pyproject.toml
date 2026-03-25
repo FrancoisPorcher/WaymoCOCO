@@ -11,6 +11,7 @@ dependencies = [
     "einops",
     "pandas",
     "protobuf<4",
+    "numpy<2",
 ]
 
 [tool.uv]

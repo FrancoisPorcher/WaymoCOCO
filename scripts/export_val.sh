@@ -30,6 +30,7 @@ echo "Python: $(uv run python --version)" >&2
 echo "Python path: $(uv run python -c 'import sys; print(sys.executable)')" >&2
 echo "VIRTUAL_ENV: ${VIRTUAL_ENV:-not set}" >&2
 echo "PYTHONPATH: ${PYTHONPATH:-not set}" >&2
+echo "NumPy version: $(uv run python -c 'import numpy; print(numpy.__version__)')" >&2
 echo "Protobuf version: $(uv run python -c 'import google.protobuf; print(google.protobuf.__version__)')" >&2
 
 srun --cpu-bind=none uv run python convert_waymo_to_coco.py \
