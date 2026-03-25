@@ -1,9 +1,56 @@
 # WaymoCOCO
 
-This converter converts the Waymo Open Dataset to COCO format.
-Current implementation supports to extract the 2D information of the dataset v1.2 (the version used in the Waymo Open Dataset challenge at CVPR 2020).
+## Download instructions
 
-## Installation
+We are using the [Waymo Open Dataset v1.4.3](https://waymo.com/open/download/).
+
+### 1. Install gcloud SDK
+
+`gsutil` is bundled with the gcloud SDK. Install it locally (no sudo needed):
+
+```bash
+URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz"
+curl -L -O "$URL"
+tar -xf google-cloud-cli-linux-x86_64.tar.gz
+./google-cloud-sdk/install.sh --quiet
+```
+
+
+### 2. Authenticate
+
+```bash
+gcloud auth login
+```
+
+### 3. Create destination directories
+
+Replace `YOUR_DATASET_PATH` with your storage path (e.g. a shared cluster directory):
+
+```bash
+mkdir -p YOUR_DATASET_PATH/waymo_v1_4_3/training
+mkdir -p YOUR_DATASET_PATH/waymo_v1_4_3/validation
+```
+
+### 4. Download
+
+Run both in parallel (separate terminals) to maximize throughput:
+
+```bash
+# Terminal 1 — training (~800 GB)
+DEST="YOUR_DATASET_PATH/waymo_v1_4_3/training/"
+gsutil -m cp "gs://waymo_open_dataset_v_1_4_3/individual_files/training/*.tfrecord" "$DEST"
+
+# Terminal 2 — validation (~150 GB)
+DEST="YOUR_DATASET_PATH/waymo_v1_4_3/validation/"
+gsutil -m cp "gs://waymo_open_dataset_v_1_4_3/individual_files/validation/*.tfrecord" "$DEST"
+```
+# Installation (updated with uv)
+
+```bash
+uv sync
+```
+
+# Installation
 
 Requirements
 
@@ -21,24 +68,9 @@ git clone https://github.com/shinya7y/WaymoCOCO.git
 cd WaymoCOCO
 ```
 
-## Download
+# Conversion
 
-1. Access https://waymo.com/open/download/ .
-2. Fill in the form and check the license for user registration.
-3. Download the Training, Validation, and Test sets to `${HOME}/data/waymotfrecord/training/`, `${HOME}/data/waymotfrecord/validation/`, and `${HOME}/data/waymotfrecord/testing/`, respectively.
-
-You can download them quickly by the commands below. [Installing Google Cloud SDK](https://cloud.google.com/sdk/docs) may be needed in advance.
-
-``` bash
-gcloud auth login
-# follow messages for authentication
-
-gsutil -m cp -r gs://waymo_open_dataset_v_1_2_0_individual_files/training/ ${HOME}/data/waymotfrecord/
-gsutil -m cp -r gs://waymo_open_dataset_v_1_2_0_individual_files/validation/ ${HOME}/data/waymotfrecord/
-gsutil -m cp -r gs://waymo_open_dataset_v_1_2_0_individual_files/testing/ ${HOME}/data/waymotfrecord/
-```
-
-## Conversion
+We first convert the raw Waymo dataset in a frieldy format for training video models.
 
 ### WaymoCOCO f0 (frame 0)
 
@@ -111,7 +143,7 @@ The debug launchers in `.vscode/launch.json` execute the following:
 ``` bash
 # training (first 150 sequences)
 python convert_waymo_to_coco.py \
-    --tfrecord_dir /private/home/francoisporcher/datasets/waymo_v1_4_3/training \
+    --tfrecord_dir /checkpoint/unicorns/shared/datasets/waymo_v1_4_3/training \
     --work_dir /private/home/francoisporcher/data/waymococo_f0 \
     --image_dirname train2020 \
     --image_filename_prefix train \
@@ -120,7 +152,7 @@ python convert_waymo_to_coco.py \
 
 # evaluation
 python convert_waymo_to_coco.py \
-    --tfrecord_dir /private/home/francoisporcher/datasets/waymo_v1_4_3/validation \
+    --tfrecord_dir /checkpoint/unicorns/shared/datasets/waymo_v1_4_3/validation \
     --work_dir /private/home/francoisporcher/data/waymococo_f0 \
     --image_dirname val2020 \
     --image_filename_prefix val \
@@ -129,7 +161,7 @@ python convert_waymo_to_coco.py \
 
 # test
 python convert_waymo_to_coco.py \
-    --tfrecord_dir /private/home/francoisporcher/datasets/waymo_v1_4_3/testing \
+    --tfrecord_dir /checkpoint/unicorns/shared/datasets/waymo_v1_4_3/testing \
     --work_dir /private/home/francoisporcher/data/waymococo_f0 \
     --image_dirname test2020 \
     --image_filename_prefix test \

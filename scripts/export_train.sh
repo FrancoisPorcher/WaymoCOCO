@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=waymococo_train
-#SBATCH --output=/private/home/francoisporcher/WaymoCOCO/logs/export_train/export_train_%j.out
-#SBATCH --error=/private/home/francoisporcher/WaymoCOCO/logs/export_train/export_train_%j.err
-#SBATCH --partition=learnfair
+#SBATCH --output=/storage/home/francoisporcher/WaymoCOCO/logs/export_train/export_train_%j.out
+#SBATCH --error=/storage/home/francoisporcher/WaymoCOCO/logs/export_train/export_train_%j.err
+#SBATCH --account=unicorns
+#SBATCH --qos=cpu_lowest
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --exclusive
@@ -11,26 +12,22 @@
 
 set -euo pipefail
 
-REPO_ROOT="/private/home/francoisporcher/WaymoCOCO"
+REPO_ROOT="/storage/home/francoisporcher/WaymoCOCO"
 LOG_DIR="${REPO_ROOT}/logs/export_train"
 
 mkdir -p "${LOG_DIR}"
 
 cd "${REPO_ROOT}"
 
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate waymococo
-
-export CUDA_VISIBLE_DEVICES=""
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 
-TFRECORD_DIR="/private/home/francoisporcher/datasets/waymo_v1_4_3/training"
-WORK_DIR="/private/home/francoisporcher/data/waymococo_f0"
+TFRECORD_DIR="/checkpoint/unicorns/shared/datasets/waymo_v1_4_3/training"
+WORK_DIR="/checkpoint/unicorns/shared/datasets/waymococo_f0"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Waymo val export on ${SLURM_CPUS_PER_TASK:-8} CPU cores." >&2
 
-srun --cpu-bind=none python convert_waymo_to_coco.py \
+srun --cpu-bind=none uv run python convert_waymo_to_coco.py \
   --tfrecord_dir "${TFRECORD_DIR}" \
   --work_dir "${WORK_DIR}" \
   --image_dirname "train2020" \
