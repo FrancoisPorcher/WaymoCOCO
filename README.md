@@ -42,13 +42,6 @@ gsutil -m cp -r gs://waymo_open_dataset_v_1_2_0_individual_files/testing/ ${HOME
 
 ### WaymoCOCO f0 (frame 0)
 
-The Waymo Open Dataset is large, but for many cases, it's too large.
-Using its subsets is useful when you would like to:
-* do much trial and error before full training.
-* evaluate the generalization of your method on the second dataset other than COCO.
-
-This converter supports to extract 1/10 size dataset based on the ones place of frame index (e.g., frames 0, 10, 20, ..., 190).
-
 ``` bash
 # convert val
 python convert_waymo_to_coco.py \
@@ -57,8 +50,7 @@ python convert_waymo_to_coco.py \
     --image_dirname val2020 \
     --image_filename_prefix val \
     --label_filename instances_val2020.json \
-    --add_waymo_info \
-    --frame_index_ones_place 0
+    --add_waymo_info
 # convert train
 python convert_waymo_to_coco.py \
     --tfrecord_dir ${HOME}/data/waymotfrecord/training/ \
@@ -66,8 +58,7 @@ python convert_waymo_to_coco.py \
     --image_dirname train2020 \
     --image_filename_prefix train \
     --label_filename instances_train2020.json \
-    --add_waymo_info \
-    --frame_index_ones_place 0
+    --add_waymo_info
 # convert test
 python convert_waymo_to_coco.py \
     --tfrecord_dir ${HOME}/data/waymotfrecord/testing/ \
@@ -75,8 +66,7 @@ python convert_waymo_to_coco.py \
     --image_dirname test2020 \
     --image_filename_prefix test \
     --label_filename image_info_test2020.json \
-    --add_waymo_info \
-    --frame_index_ones_place 0
+    --add_waymo_info
 ```
 
 ### WaymoCOCO full
@@ -113,6 +103,39 @@ python convert_waymo_to_coco.py \
 ### Other options
 
 Please see [convert_waymo_to_coco.py](convert_waymo_to_coco.py).
+
+### Local run commands
+
+The debug launchers in `.vscode/launch.json` execute the following:
+
+``` bash
+# training (first 150 sequences)
+python convert_waymo_to_coco.py \
+    --tfrecord_dir /private/home/francoisporcher/datasets/waymo_v1_4_3/training \
+    --work_dir /private/home/francoisporcher/data/waymococo_f0 \
+    --image_dirname train2020 \
+    --image_filename_prefix train \
+    --label_filename instances_train2020.json \
+    --add_waymo_info
+
+# evaluation
+python convert_waymo_to_coco.py \
+    --tfrecord_dir /private/home/francoisporcher/datasets/waymo_v1_4_3/validation \
+    --work_dir /private/home/francoisporcher/data/waymococo_f0 \
+    --image_dirname val2020 \
+    --image_filename_prefix val \
+    --label_filename instances_val2020.json \
+    --add_waymo_info
+
+# test
+python convert_waymo_to_coco.py \
+    --tfrecord_dir /private/home/francoisporcher/datasets/waymo_v1_4_3/testing \
+    --work_dir /private/home/francoisporcher/data/waymococo_f0 \
+    --image_dirname test2020 \
+    --image_filename_prefix test \
+    --label_filename image_info_test2020.json \
+    --add_waymo_info
+```
 
 
 ## Creating symlinks (optional)
