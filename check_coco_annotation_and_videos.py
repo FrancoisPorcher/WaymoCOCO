@@ -3,13 +3,14 @@ import json
 import os
 
 import pandas as pd
+from project_config import require_config_value
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--base_path",
-        default="/checkpoint/unicorns/shared/datasets/waymococo_f0",
+        default=None,
         type=str,
         help="Base path containing images, annotations, and video tensor folders.",
     )
@@ -154,10 +155,11 @@ def run_split_checks(split_name, image_dir, tensor_dir, annotation_path):
 
 def main():
     args = parse_args()
+    base_path = require_config_value("WAYMOCOCO_BASE_PATH", cli_value=args.base_path)
     splits = selected_splits(args)
-    paths = build_paths(args.base_path)
+    paths = build_paths(base_path)
 
-    print(f"waymococo_f0 path: {args.base_path}")
+    print(f"waymococo_f0 path: {base_path}")
     print(f"requested splits: {splits}")
     print(f"annotations path: {paths['annotations']}")
     require_path(paths["annotations"], "annotations dir")

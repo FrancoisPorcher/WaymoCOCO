@@ -50,23 +50,24 @@ gsutil -m cp "gs://waymo_open_dataset_v_1_4_3/individual_files/validation/*.tfre
 uv sync
 ```
 
-# Installation
+## Path Setup
 
-Requirements
+Machine-specific dataset paths are configured through a local `.env` file instead of being hardcoded in the scripts.
 
-* Linux
-* Python 3.6+
-* TensorFlow 1.15.0, 2.0.0, 2.1.0
-
-Example using conda
-
-``` bash
-conda create -n waymococo python=3.7
-conda activate waymococo
-pip install tensorflow==2.1.0
-git clone https://github.com/shinya7y/WaymoCOCO.git
-cd WaymoCOCO
+```bash
+cp .env.example .env
 ```
+
+Then edit `.env` and set:
+
+```bash
+WAYMOCOCO_BASE_PATH="/path/to/waymococo_f0"
+WAYMO_TRAIN_TFRECORD_DIR="/path/to/waymo_v1_4_3/training"
+WAYMO_VAL_TFRECORD_DIR="/path/to/waymo_v1_4_3/validation"
+WAYMO_TEST_TFRECORD_DIR="/path/to/waymo_v1_4_3/testing"
+```
+
+The Python validation scripts read `WAYMOCOCO_BASE_PATH` from `.env` by default. The SLURM export scripts read `WAYMOCOCO_BASE_PATH` plus the split-specific TFRecord directory variables.
 
 # Conversion
 
@@ -138,13 +139,13 @@ Please see [convert_waymo_to_coco.py](convert_waymo_to_coco.py).
 
 ### Local run commands
 
-The debug launchers in `.vscode/launch.json` execute the following:
+The debug launchers in `.vscode/launch.json` should use your local paths from `.env`. Equivalent commands are:
 
 ``` bash
 # training (first 150 sequences)
 python convert_waymo_to_coco.py \
-    --tfrecord_dir /checkpoint/unicorns/shared/datasets/waymo_v1_4_3/training \
-    --work_dir /private/home/francoisporcher/data/waymococo_f0 \
+    --tfrecord_dir "${WAYMO_TRAIN_TFRECORD_DIR}" \
+    --work_dir "${WAYMOCOCO_BASE_PATH}" \
     --image_dirname train2020 \
     --image_filename_prefix train \
     --label_filename instances_train2020.json \
@@ -152,8 +153,8 @@ python convert_waymo_to_coco.py \
 
 # evaluation
 python convert_waymo_to_coco.py \
-    --tfrecord_dir /checkpoint/unicorns/shared/datasets/waymo_v1_4_3/validation \
-    --work_dir /private/home/francoisporcher/data/waymococo_f0 \
+    --tfrecord_dir "${WAYMO_VAL_TFRECORD_DIR}" \
+    --work_dir "${WAYMOCOCO_BASE_PATH}" \
     --image_dirname val2020 \
     --image_filename_prefix val \
     --label_filename instances_val2020.json \
@@ -161,12 +162,21 @@ python convert_waymo_to_coco.py \
 
 # test
 python convert_waymo_to_coco.py \
-    --tfrecord_dir /checkpoint/unicorns/shared/datasets/waymo_v1_4_3/testing \
-    --work_dir /private/home/francoisporcher/data/waymococo_f0 \
+    --tfrecord_dir "${WAYMO_TEST_TFRECORD_DIR}" \
+    --work_dir "${WAYMOCOCO_BASE_PATH}" \
     --image_dirname test2020 \
     --image_filename_prefix test \
     --label_filename image_info_test2020.json \
     --add_waymo_info
+```
+
+### Validation checks
+
+After `.env` is configured, you can run:
+
+```bash
+uv run python check_coco_annotation_and_videos.py --all
+uv run python check_if_tensors_and_images_and_annotations_are_aligned.py --split val
 ```
 
 

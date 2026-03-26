@@ -1,8 +1,10 @@
+import argparse
 import json
 import os
 import pandas as pd
 import torch
 import torchvision
+from project_config import REPO_ROOT, require_config_value
 
 # I also need to make imports to visualize the bounding boxes
 from torchvision.utils import draw_bounding_boxes
@@ -24,8 +26,32 @@ def load_annotations(annotation_dir, split):
         return json.load(f)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--base_path",
+        default=None,
+        type=str,
+        help="Base dataset path containing images, annotations, and video tensor folders.",
+    )
+    parser.add_argument(
+        "--split",
+        choices=["train", "val"],
+        default="val",
+        help="Dataset split to visualize.",
+    )
+    parser.add_argument(
+        "--output_dir",
+        default=None,
+        type=str,
+        help="Directory where debug videos will be written.",
+    )
+    return parser.parse_args()
+
+
 def main():
-    base_path = "/checkpoint/unicorns/shared/datasets/waymococo_f0"
+    args = parse_args()
+    base_path = require_config_value("WAYMOCOCO_BASE_PATH", cli_value=args.base_path)
     paths = {
         "train_images": os.path.join(base_path, "train2020"),
         "val_images": os.path.join(base_path, "val2020"),
@@ -38,34 +64,33 @@ def main():
         if not os.path.exists(path):
             raise FileNotFoundError(path)
 
-    # df_train = load_metadata(paths["train_tensors"])
-    df_val = load_metadata(paths["val_tensors"])
-    # annotations_train = load_annotations(paths["annotations"], "train")
-    annotations_val = load_annotations(paths["annotations"], "val")
-    
+    split_prefix = "train" if args.split == "train" else "val"
+    image_dir = paths[f"{split_prefix}_images"]
+    tensor_dir = paths[f"{split_prefix}_tensors"]
+    metadata = load_metadata(tensor_dir)
+    annotations = load_annotations(paths["annotations"], split_prefix)
+
     # build fast lookup for annotations by video filename
     anns_by_img = {}
-    for ann in annotations_val['annotations']:
-        img_id = ann['image_id']
+    for ann in annotations["annotations"]:
+        img_id = ann["image_id"]
         if img_id not in anns_by_img:
             anns_by_img[img_id] = []
         anns_by_img[img_id].append(ann)
 
-    cat_id_to_name = {cat['id']: cat['name'] for cat in annotations_val['categories']}
+    cat_id_to_name = {cat["id"]: cat["name"] for cat in annotations["categories"]}
 
-    # Now pick a random row from the validation dataframe
-    sample_row = df_val.sample(n=1).iloc[0]
-    video_file_full_path = os.path.join(paths["val_tensors"], sample_row['video_filename'])
+    sample_row = metadata.sample(n=1).iloc[0]
+    video_file_full_path = os.path.join(tensor_dir, sample_row["video_filename"])
     # load the tensor
     video_tensor = torch.load(video_file_full_path)  # [T, 3, H, W]
-    
-    # Also load all the images in annotations with the corresponding video_id
-    image_ids = sample_row['image_ids'] # this is a string like "[12345, 12346, ...]"
-    image_ids = list(map(int, image_ids.strip("[]").split(","))) # list of int [12345, 12346, ...]
-    
 
-    image_lookup = {img['id']: img for img in annotations_val['images']}
-    image_file_paths = [os.path.join(paths["val_images"], image_lookup[i]['file_name']) for i in image_ids]
+    # Also load all the images in annotations with the corresponding video_id
+    image_ids = sample_row["image_ids"]  # this is a string like "[12345, 12346, ...]"
+    image_ids = list(map(int, image_ids.strip("[]").split(",")))
+
+    image_lookup = {img["id"]: img for img in annotations["images"]}
+    image_file_paths = [os.path.join(image_dir, image_lookup[i]["file_name"]) for i in image_ids]
     assert len(image_file_paths) == 16, f"Expected 16 image file paths, but got {len(image_file_paths)}"
 
     jpg_imgs = [torchvision.io.read_image(img_path) for img_path in image_file_paths]  # each is [3, H, W]
@@ -93,12 +118,12 @@ def main():
             continue
 
         # build boxes and labels COCO bbox [x, y, w, h] to [x1, y1, x2, y2] in ORIGINAL resolution
-        bboxes = torch.tensor([ann['bbox'] for ann in annotations], dtype=torch.float32)  # [N, 4]
+        bboxes = torch.tensor([ann["bbox"] for ann in annotations], dtype=torch.float32)  # [N, 4]
         bboxes[:, 2] += bboxes[:, 0]  # x2 = x + w
         bboxes[:, 3] += bboxes[:, 1]  # y2 = y + h
 
-        labels = [cat_id_to_name[ann['category_id']] for ann in annotations]
-        colors = [class_colors[ann['category_id']] for ann in annotations]
+        labels = [cat_id_to_name[ann["category_id"]] for ann in annotations]
+        colors = [class_colors[ann["category_id"]] for ann in annotations]
 
         # Draw on original JPG image
         img_with_boxes = draw_bounding_boxes(
@@ -139,7 +164,7 @@ def main():
     annotated_video = torch.stack(annotated_imgs).permute(0, 2, 3, 1).contiguous()
     tensor_annotated_video = torch.stack(tensor_annotated_imgs).permute(0, 2, 3, 1).contiguous()
 
-    output_dir = os.path.join(os.path.dirname(__file__), "video_checks")
+    output_dir = args.output_dir or str(REPO_ROOT / "video_checks")
     # If it exists remove it
     if os.path.exists(output_dir):
         import shutil
@@ -147,7 +172,7 @@ def main():
 
     os.makedirs(output_dir, exist_ok=True)
 
-    video_stem = os.path.splitext(sample_row['video_filename'])[0]
+    video_stem = os.path.splitext(sample_row["video_filename"])[0]
 
     tensor_path = os.path.join(output_dir, f"{video_stem}_tensor.mp4")
     jpg_path = os.path.join(output_dir, f"{video_stem}_images.mp4")
@@ -160,7 +185,10 @@ def main():
     torchvision.io.write_video(annotated_path, annotated_video, fps=fps)
     torchvision.io.write_video(annotated_tensor_path, tensor_annotated_video, fps=fps)
 
-    print(f"Wrote {tensor_path} and {jpg_path} and {annotated_path} and {annotated_tensor_path}")
+    print(
+        f"[{args.split}] Wrote {tensor_path} and {jpg_path} and "
+        f"{annotated_path} and {annotated_tensor_path}"
+    )
 
 
 if __name__ == "__main__":
