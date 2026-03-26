@@ -12,6 +12,7 @@ dependencies = [
     "pandas",
     "protobuf<4",
     "numpy<2",
+    "av>=17.0.0",
 ]
 
 [tool.uv]

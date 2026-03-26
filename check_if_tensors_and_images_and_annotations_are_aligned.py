@@ -25,7 +25,7 @@ def load_annotations(annotation_dir, split):
 
 
 def main():
-    base_path = "/private/home/francoisporcher/data/waymococo_f0"
+    base_path = "/checkpoint/unicorns/shared/datasets/waymococo_f0"
     paths = {
         "train_images": os.path.join(base_path, "train2020"),
         "val_images": os.path.join(base_path, "val2020"),
